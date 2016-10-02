@@ -6,10 +6,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.json.simple.JSONValue;
 import org.json.simple.parser.JSONParser;
@@ -170,7 +167,25 @@ public class SQLSourceHelper {
 		
 		return allRows;
 	}
-	
+
+	// TODO:ADP
+	public List<String> getAllObjectRows(List<Object> queryResult){
+
+		List<String> allRows = new ArrayList<String>();
+
+		if (queryResult == null || queryResult.isEmpty())
+			return allRows;
+
+		StringBuilder row = new StringBuilder();
+
+		for (int i=0; i<queryResult.size();i++)
+		{
+			allRows.add(queryResult.get(i).toString());
+		}
+
+		return allRows;
+	}
+
 	/**
 	 * Create status file
 	 */

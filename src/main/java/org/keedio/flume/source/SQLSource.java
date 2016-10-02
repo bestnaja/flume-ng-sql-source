@@ -18,8 +18,7 @@
  *******************************************************************************/
 package org.keedio.flume.source;
 
-import java.io.IOException;
-import java.io.Writer;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +50,10 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
     private SqlSourceCounter sqlSourceCounter;
     private CSVWriter csvWriter;
     private HibernateHelper hibernateHelper;
+
+    // TODO:ADP
+    private Class clazz;
+    private ChannelWriter writer;
        
     /**
      * Configure the source, load configuration properties and establish connection with database
@@ -73,25 +76,44 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
         hibernateHelper.establishSession();
        
         /* Instantiate the CSV Writer */
-        csvWriter = new CSVWriter(new ChannelWriter());
-        
+        // TODO:ADP
+//        csvWriter = new CSVWriter(new ChannelWriter());
+
+        // TODO:ADP
+        if (context.getString("bean.class") != null && !context.getString("bean.class").isEmpty()) {
+
+            try {
+
+                this.clazz = Class.forName(context.getString("bean.class"));
+
+            } catch (ClassNotFoundException e) {
+
+                throw new IllegalArgumentException(e);
+            }
+        }
+        writer = new ChannelWriter();
+
     }  
     
     /**
      * Process a batch of events performing SQL Queries
      */
+    // TODO:ADP
 	@Override
 	public Status process() throws EventDeliveryException {
 		
 		try {
 			sqlSourceCounter.startProcess();			
-			
-			List<List<Object>> result = hibernateHelper.executeQuery();
-						
+
+			List<Object> result = hibernateHelper.executeQueryReturnInstanceOfT(clazz);
 			if (!result.isEmpty())
 			{
-				csvWriter.writeAll(sqlSourceHelper.getAllRows(result),true);
-				csvWriter.flush();
+//				csvWriter.writeAll(sqlSourceHelper.getAllObjectRows(result),true);
+                for (String v: sqlSourceHelper.getAllObjectRows(result)) {
+                    writer.write(v);
+                }
+//				csvWriter.flush();
+                writer.flush();
 				sqlSourceCounter.incrementEventCount(result.size());
 				
 				sqlSourceHelper.updateStatusFile();
@@ -119,7 +141,7 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
         
     	LOG.info("Starting sql source {} ...", getName());
         sqlSourceCounter.start();
-        super.start();
+//        super.start();
     }
 
 	/**
@@ -133,12 +155,15 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
         try 
         {
             hibernateHelper.closeSession();
-            csvWriter.close();    
+            // TODO:ADP
+//            csvWriter.close();
+            writer.close();
+
         } catch (IOException e) {
         	LOG.warn("Error CSVWriter object ", e);
         } finally {
         	this.sqlSourceCounter.stop();
-        	super.stop();
+//        	super.stop();
         }
     }
     
@@ -150,8 +175,10 @@ public class SQLSource extends AbstractSource implements Configurable, PollableS
             Event event = new SimpleEvent();
             
             String s = new String(cbuf);
-            event.setBody(s.substring(off, len-1).getBytes());
-            
+            // TODO:ADP
+//            event.setBody(s.substring(off, len-1).getBytes());
+            event.setBody(s.substring(off, len).getBytes());
+
             Map<String, String> headers;
             headers = new HashMap<String, String>();
 			headers.put("timestamp", String.valueOf(System.currentTimeMillis()));

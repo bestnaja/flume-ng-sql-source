@@ -91,7 +91,7 @@ public class HibernateHelper {
 	 */
 	@SuppressWarnings("unchecked")
 	public List<List<Object>> executeQuery() throws InterruptedException {
-		
+
 		List<List<Object>> rowsList = new ArrayList<List<Object>>() ;
 		Query query;
 		
@@ -135,6 +135,56 @@ public class HibernateHelper {
 			}
 		}
 		
+		return rowsList;
+	}
+
+	public List<Object> executeQueryReturnInstanceOfT(Class clazz) throws InterruptedException {
+
+		List<Object> rowsList = new ArrayList<Object>() ;
+		Query query;
+
+		if (!session.isConnected()){
+			resetConnection();
+		}
+
+		if (sqlSourceHelper.isCustomQuerySet()){
+
+			query = session.createSQLQuery(sqlSourceHelper.buildQuery());
+
+			if (sqlSourceHelper.getMaxRows() != 0){
+				query = query.setMaxResults(sqlSourceHelper.getMaxRows());
+			}
+		}
+		else
+		{
+			query = session
+					.createSQLQuery(sqlSourceHelper.getQuery())
+					.setFirstResult(Integer.parseInt(sqlSourceHelper.getCurrentIndex()));
+
+			if (sqlSourceHelper.getMaxRows() != 0){
+				query = query.setMaxResults(sqlSourceHelper.getMaxRows());
+			}
+		}
+
+		try {
+			rowsList = query.setFetchSize(sqlSourceHelper.getMaxRows()).setResultTransformer(Transformers.aliasToBean(clazz)).list();
+		}catch (Exception e){
+			e.printStackTrace();
+			resetConnection();
+		}
+
+		if (!rowsList.isEmpty()){
+			if (sqlSourceHelper.isCustomQuerySet()){
+				// TODO:ADP modify to find the true current index
+				sqlSourceHelper.setCurrentIndex(rowsList.get(rowsList.size()-1).toString());
+			}
+			else
+			{
+				sqlSourceHelper.setCurrentIndex(Integer.toString((Integer.parseInt(sqlSourceHelper.getCurrentIndex())
+						+ rowsList.size())));
+			}
+		}
+
 		return rowsList;
 	}
 
